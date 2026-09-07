@@ -29,7 +29,7 @@ git add services/core/java/com/android/server/am/ActivityManagerShellCommand.jav
 git commit -m 'Add a read-only research status shell command'
 ```
 
-回到个人仓库运行完整构建、设备验证，然后 `lab snapshot experiment-1`。快照会将核心提交推送到 state/git/frameworks-base.git 的 snapshots/experiment-1 分支；在实验分支上也同步保存 research/a13/prototype。
+回到个人仓库运行完整构建、设备验证，然后 `lab snapshot experiment-1`。快照会将核心提交保存到 state/git/frameworks-base.git 的 snapshots/experiment-1 分支；在实验分支上也同步保存 research/a13/prototype。
 
 返回基线前，停止 lab 模拟器，确认工作目录干净且已保存提交。仍在上述核心子仓库执行：
 
@@ -57,3 +57,5 @@ git clone --filter=blob:none --branch research/a13/prototype file:///path/to/sta
 ```
 
 在断开原开发检出后恢复私有提交的测试包含在维护脚本测试中；实际原型的恢复证据另见验证报告。
+
+本机 Git 2.34 的 receive-pack 在检查到已有 promisor 提交时会出现等待 sideband 管道关闭的挂起，实际跟踪记录在 state/backup-push.strace。lab 使用裸仓库端的 `git fetch --no-tags --no-filter <开发仓库> <提交>:<保存引用>` 回存，保留普通 Git 历史，并确保新私有文件内容也被复制。此行为与 [Git 2.34 的连接检查提前返回路径](https://raw.githubusercontent.com/git/git/v2.34.1/connected.c) 及 [接收端等待路径](https://raw.githubusercontent.com/git/git/v2.34.1/builtin/receive-pack.c) 一致。
