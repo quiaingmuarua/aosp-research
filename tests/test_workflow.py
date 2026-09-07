@@ -252,6 +252,46 @@ class NativeToolTests(unittest.TestCase):
         result = subprocess.run([str(self.json_binary)], capture_output=True, text=True, check=True)
         self.assertEqual(json.loads(result.stdout), 'quote" slash\\ line\n tab\t')
 
+    def test_android_property_callback_preserves_long_fingerprint(self):
+        root = Path(self.temp.name)
+        include = root / "fake-sdk/sys"
+        include.mkdir(parents=True)
+        (include / "system_properties.h").write_text('''
+#include <cstdint>
+struct prop_info { const char* name; };
+const prop_info* __system_property_find(const char*);
+void __system_property_read_callback(const prop_info*,
+    void (*)(void*, const char*, const char*, uint32_t), void*);
+''')
+        source = root / "android-properties.cpp"
+        source.write_text('#define main tool_main\n#include "' +
+                          str(lab.ROOT / "modules/research-info/main.cpp") +
+                          '"\n#undef main\n' + '''
+const prop_info* __system_property_find(const char* key) {
+    static prop_info info;
+    if (std::strcmp(key, "missing") == 0) return nullptr;
+    info.name = key;
+    return &info;
+}
+void __system_property_read_callback(const prop_info* info,
+    void (*callback)(void*, const char*, const char*, uint32_t), void* cookie) {
+    std::string value = std::strcmp(info->name, "ro.build.fingerprint") == 0
+        ? std::string(240, 'f') : "fixture";
+    callback(cookie, info->name, value.c_str(), 0);
+}
+int main() {
+    if (!property("missing").empty()) return 3;
+    char name[] = "research-info", arg[] = "--json";
+    char* argv[] = {name, arg};
+    return tool_main(2, argv);
+}
+''')
+        binary = root / "android-properties"
+        subprocess.run(["c++", "-std=c++17", "-D__ANDROID__", "-I", str(include.parent),
+                        "-Wall", "-Wextra", "-Werror", str(source), "-o", str(binary)], check=True)
+        result = subprocess.run([str(binary)], capture_output=True, text=True, check=True)
+        self.assertEqual(json.loads(result.stdout)["fingerprint"], "f" * 240)
+
 
 if __name__ == "__main__":
     unittest.main()

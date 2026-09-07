@@ -9,8 +9,14 @@
 
 static std::string property(const char* key) {
 #ifdef __ANDROID__
-    char value[PROP_VALUE_MAX] = {};
-    __system_property_get(key, value);
+    std::string value;
+    const prop_info* info = __system_property_find(key);
+    if (info != nullptr) {
+        __system_property_read_callback(info,
+            [](void* cookie, const char*, const char* text, uint32_t) {
+                *static_cast<std::string*>(cookie) = text;
+            }, &value);
+    }
     return value;
 #else
     (void)key;
