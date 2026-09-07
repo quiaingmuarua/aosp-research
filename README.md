@@ -34,7 +34,7 @@
 
 ## 模拟器和快照
 
-每次运行使用新的 `--name`，保留自己的 userdata、日志和截图。默认端口 5580；`lab` 只操作登记且身份匹配的进程与 adb serial。构建前先停止模拟器。
+每次运行使用新的 `--name`，保留自己的 userdata、日志和截图。默认无窗口启动完整 Android；要在桌面直接交互，使用 `lab run --name <新名称> --window`。默认端口 5580；`lab` 只操作登记且身份匹配的进程与 adb serial。构建前先停止模拟器。
 
 ```bash
 ./lab verify --expect experiment
