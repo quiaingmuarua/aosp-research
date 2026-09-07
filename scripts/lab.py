@@ -395,12 +395,13 @@ class Lab:
                    "-no-snapshot", "-no-boot-anim", "-memory", "4096", "-cores", "4", "-port", str(port),
                    "-data", str(runtime / "userdata.img"), "-cache", str(runtime / "cache.img"),
                    "-initdata", str(self.product_out / "userdata.img")]
+        version = run([emulator, "-version"], capture=True).stdout.splitlines()[0]
         with (runtime / "emulator.log").open("w") as f:
             process = subprocess.Popen(command, cwd=self.tree, env=env, stdout=f, stderr=subprocess.STDOUT,
                                        start_new_session=True)
         meta = {"name": name, "pid": process.pid, "process_start": self.process_start(process.pid),
                 "serial": f"emulator-{port}", "directory": str(runtime), "command": command,
-                "build": build, "time": now()}
+                "build": build, "emulator_version": version, "time": now()}
         write_json(self.runtime_file, meta)
         write_json(runtime / "run.json", meta)
         print(f"Started {meta['serial']} ({name}); log: {runtime / 'emulator.log'}")
@@ -445,7 +446,8 @@ class Lab:
         directory = Path(meta["directory"])
         result = {"time": now(), "expect": expect, "serial": meta["serial"], "info": info,
                   "core_output": core.stdout + core.stderr, "core_returncode": core.returncode,
-                  "checks": checks, "passed": all(checks.values()), "build": meta["build"]}
+                  "checks": checks, "passed": all(checks.values()), "build": meta["build"],
+                  "emulator_version": meta.get("emulator_version", "unrecorded")}
         write_json(directory / "verification.json", result)
         (directory / "logcat.txt").write_text(self.adb("logcat", "-d").stdout)
         (directory / "crashes.txt").write_text(self.adb("logcat", "-b", "crash", "-d").stdout)
