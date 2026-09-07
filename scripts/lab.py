@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from . import protection
+from .dissociate import copy_objects
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = json.loads((ROOT / "targets/aosp13.json").read_text())
@@ -338,7 +339,7 @@ class Lab:
         return run([binary, "-s", meta["serial"], *args], capture=True, check=check, timeout=timeout)
 
     def start(self, name, port):
-        self.require_owned()
+        self.statuses(clean=True)
         if self.runtime_alive():
             raise LabError("A lab emulator is already running; use lab stop first.")
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
@@ -435,6 +436,32 @@ class Lab:
         if not result["passed"]:
             raise LabError("Device checks failed; inspect verification.json.")
 
+    def seed_core_backup(self, bare):
+        """Save available upstream objects without downloading promised history."""
+        baseline_ref = "refs/heads/upstream/a13-baseline"
+        if git(bare, "rev-parse", "--verify", baseline_ref, check=False):
+            if git(bare, "rev-parse", baseline_ref) != TARGET["framework_baseline"]:
+                raise LabError("Saved framework baseline identity differs.")
+            return
+        objects = Path(git(self.core, "rev-parse", "--git-path", "objects"))
+        if not objects.is_absolute():
+            objects = self.core / objects
+        alternates = bare / "objects/info/alternates"
+        alternates.parent.mkdir(exist_ok=True)
+        expected = str(objects.resolve()) + "\n"
+        if alternates.exists() and alternates.read_text() != expected:
+            raise LabError("Unrecognized backup object reference.")
+        alternates.write_text(expected)
+        copy_objects(bare / "objects")
+        alternates.unlink()
+        git(bare, "config", "core.repositoryformatversion", "1")
+        git(bare, "config", "extensions.partialclone", "upstream")
+        git(bare, "config", "remote.upstream.url", "https://android.googlesource.com/platform/frameworks/base")
+        git(bare, "config", "remote.upstream.promisor", "true")
+        git(bare, "config", "remote.upstream.partialclonefilter", "blob:none")
+        git(bare, "config", "uploadpack.allowFilter", "true")
+        git(bare, "update-ref", baseline_ref, TARGET["framework_baseline"])
+
     def snapshot(self, name):
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
             raise LabError("Invalid snapshot name.")
@@ -448,10 +475,14 @@ class Lab:
             if not bare.exists():
                 bare.parent.mkdir(parents=True, exist_ok=True)
                 run(["git", "init", "--bare", bare], capture=True)
+            if key == "frameworks-base":
+                self.seed_core_backup(bare)
             head = git(path, "rev-parse", "HEAD")
             run(["git", "-C", path, "push", str(bare), f"{head}:refs/heads/snapshots/{name}"], capture=True)
             if git(bare, "rev-parse", f"refs/heads/snapshots/{name}") != head:
                 raise LabError("Saved Git reference does not match source.")
+            if key == "frameworks-base" and git(path, "branch", "--show-current") == TARGET["core_branch"]:
+                run(["git", "-C", path, "push", str(bare), f"HEAD:refs/heads/{TARGET['core_branch']}"], capture=True)
             commits[key] = {"commit": head, "repository": str(bare), "ref": f"refs/heads/snapshots/{name}"}
         manifest_text = self.repo("manifest", "-r", capture=True).stdout
         root = ET.fromstring(manifest_text)
@@ -467,8 +498,15 @@ class Lab:
         directory.mkdir(parents=True)
         ET.indent(root)
         ET.ElementTree(root).write(directory / "manifest.xml", encoding="utf-8", xml_declaration=True)
+        runtime = json.loads(self.runtime_file.read_text()) if self.runtime_file.exists() else None
+        verification = None
+        if runtime:
+            verification_file = Path(runtime["directory"]) / "verification.json"
+            if verification_file.exists():
+                verification = json.loads(verification_file.read_text())
         write_json(directory / "snapshot.json", {"time": now(), "name": name, "commits": commits,
-                                                 "target": TARGET, "tree": str(self.tree)})
+                   "target": TARGET, "tree": str(self.tree), "verification": verification,
+                   "history": "Core commit history and locally available blobs saved; absent upstream historical blobs remain promised by googlesource."})
         print(f"Saved Git-backed snapshot: {directory}")
 
 

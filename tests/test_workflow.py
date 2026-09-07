@@ -103,6 +103,75 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(lab.git(clone, "show", "HEAD:file"), "original")
         self.assertEqual(lab.git(self.base / "source-preserved", "status", "--porcelain"), "")
 
+    def test_product_update_retry_is_idempotent_and_preserves_private_work(self):
+        personal = self.base / "personal"
+        init_repo(personal)
+        obj = object.__new__(lab.Lab)
+        obj.tree = self.base / "tree"
+        obj.source = self.base / "source"
+        obj.tree.mkdir()
+        obj.product = obj.tree / lab.TARGET["research_path"]
+        lab.write_json(obj.tree / ".research-workspace.json",
+                       {"owner": lab.MANAGED, "source": str(obj.source)})
+
+        def sync(*args, **kwargs):
+            if not obj.product.exists():
+                obj.product.parent.mkdir(parents=True)
+                lab.run(["git", "clone", personal, obj.product], capture=True)
+            lab.git(obj.product, "fetch", str(personal), "main")
+            lab.git(obj.product, "switch", "--detach", lab.git(personal, "rev-parse", "HEAD"))
+
+        with patch.object(lab, "ROOT", personal), patch.object(obj, "repo", side_effect=sync):
+            obj.update_product("main")
+            baseline = lab.git(obj.product, "rev-parse", "HEAD")
+            obj.update_product("main")
+            self.assertEqual(lab.git(obj.product, "rev-parse", "HEAD"), baseline)
+            (personal / "file").write_text("updated product")
+            lab.git(personal, "commit", "-am", "update")
+            with patch.object(obj, "repo", side_effect=lab.LabError("interrupted sync")):
+                with self.assertRaises(lab.LabError):
+                    obj.update_product("main")
+            self.assertEqual(lab.git(obj.product, "rev-parse", "HEAD"), baseline)
+            obj.update_product("main")
+            self.assertEqual(lab.git(obj.product, "rev-parse", "HEAD"), lab.git(personal, "rev-parse", "HEAD"))
+            (obj.product / "file").write_text("private unsaved")
+            with self.assertRaises(lab.LabError):
+                obj.update_product("main")
+            self.assertEqual((obj.product / "file").read_text(), "private unsaved")
+            lab.git(obj.product, "commit", "-am", "private feature")
+            private = lab.git(obj.product, "rev-parse", "HEAD")
+            with self.assertRaisesRegex(lab.LabError, "absent from the personal repository"):
+                obj.update_product("main")
+            self.assertEqual(lab.git(obj.product, "rev-parse", "HEAD"), private)
+
+    def test_promised_history_backup_keeps_private_feature_offline(self):
+        upstream = self.base / "upstream"
+        init_repo(upstream)
+        lab.git(upstream, "config", "uploadpack.allowFilter", "true")
+        (upstream / "file").write_text("current baseline")
+        lab.git(upstream, "commit", "-am", "baseline two")
+        core = self.base / "core"
+        lab.run(["git", "clone", "--filter=blob:none", upstream.as_uri(), core], capture=True)
+        baseline = lab.git(core, "rev-parse", "HEAD")
+        obj = object.__new__(lab.Lab)
+        obj.core = core
+        bare = self.base / "core-backup.git"
+        lab.run(["git", "init", "--bare", bare], capture=True)
+        with patch.dict(lab.TARGET, {"framework_baseline": baseline}):
+            obj.seed_core_backup(bare)
+            obj.seed_core_backup(bare)
+        (core / "file").write_text("private feature")
+        lab.git(core, "commit", "-am", "experiment")
+        feature = lab.git(core, "rev-parse", "HEAD")
+        lab.git(core, "push", str(bare), "HEAD:refs/heads/research/a13/prototype")
+        upstream.rename(self.base / "upstream-unavailable")
+        core.rename(self.base / "core-unavailable")
+        lab.git(bare, "config", "remote.upstream.url", str(self.base / "offline"))
+        restored = self.base / "restored"
+        lab.run(["git", "clone", "--filter=blob:none", "--branch", "research/a13/prototype", bare.as_uri(), restored], capture=True)
+        self.assertEqual(lab.git(restored, "rev-parse", "HEAD"), feature)
+        self.assertEqual((restored / "file").read_text(), "private feature")
+
     def test_workspace_identity_required(self):
         obj = object.__new__(lab.Lab)
         obj.tree = self.base / "unrelated"
