@@ -84,6 +84,23 @@ class WorkflowTests(unittest.TestCase):
         with patch.object(lab.Lab, "process_start", return_value=None):
             self.assertFalse(obj.runtime_alive())
 
+    def test_dissociate_precious_repository_keeps_reference_untouched(self):
+        source = self.base / "source"
+        init_repo(source)
+        baseline = lab.git(source, "rev-parse", "HEAD")
+        clone = self.base / "clone"
+        lab.run(["git", "clone", "--shared", source, clone], capture=True)
+        lab.git(clone, "config", "core.repositoryformatversion", "1")
+        lab.git(clone, "config", "extensions.preciousObjects", "true")
+        result = lab.run(["git", "-C", clone, "repack", "-a", "-d"], capture=True, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        lab.run(["git", "-C", clone, "-c", "extensions.preciousObjects=false", "repack", "-a", "-d"], capture=True)
+        (clone / ".git/objects/info/alternates").unlink()
+        source.rename(self.base / "source-preserved")
+        self.assertEqual(lab.git(clone, "rev-parse", "HEAD"), baseline)
+        self.assertEqual(lab.git(clone, "show", "HEAD:file"), "original")
+        self.assertEqual(lab.git(self.base / "source-preserved", "status", "--porcelain"), "")
+
     def test_workspace_identity_required(self):
         obj = object.__new__(lab.Lab)
         obj.tree = self.base / "unrelated"

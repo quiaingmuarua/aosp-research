@@ -107,10 +107,20 @@ class Lab:
             yield
 
     def repo(self, *args, capture=False):
+        self.require_owned()
         launcher = self.tree / ".repo/repo/repo"
         if not launcher.exists():
             launcher = self.source / ".repo/repo/repo"
-        return run([sys.executable, launcher, *args], cwd=self.tree, capture=capture)
+        # Repo 2.59 marks object stores precious, then uses repack -a -d to
+        # dissociate. Git 2.34 rejects that combination. Override the setting
+        # only for this process operating in our independently owned checkout;
+        # no reference-tree configuration is edited.
+        env = dict(os.environ)
+        count = int(env.get("GIT_CONFIG_COUNT", "0"))
+        env[f"GIT_CONFIG_KEY_{count}"] = "extensions.preciousObjects"
+        env[f"GIT_CONFIG_VALUE_{count}"] = "false"
+        env["GIT_CONFIG_COUNT"] = str(count + 1)
+        return run([sys.executable, launcher, *args], cwd=self.tree, capture=capture, env=env)
 
     def protect(self, compare=False):
         baseline = self.state / "reference-before.json"
