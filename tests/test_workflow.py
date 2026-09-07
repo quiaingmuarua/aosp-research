@@ -94,7 +94,7 @@ class WorkflowTests(unittest.TestCase):
         lab.git(clone, "config", "extensions.preciousObjects", "true")
         result = lab.run(["git", "-C", clone, "repack", "-a", "-d"], capture=True, check=False)
         self.assertNotEqual(result.returncode, 0)
-        lab.run(["git", "-C", clone, "-c", "extensions.preciousObjects=false", "repack", "-a", "-d"], capture=True)
+        lab.run(["git", "-C", clone, "repack", "-a"], capture=True)
         (clone / ".git/objects/info/alternates").unlink()
         source.rename(self.base / "source-preserved")
         self.assertEqual(lab.git(clone, "rev-parse", "HEAD"), baseline)

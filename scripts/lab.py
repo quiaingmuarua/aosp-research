@@ -109,18 +109,37 @@ class Lab:
     def repo(self, *args, capture=False):
         self.require_owned()
         launcher = self.tree / ".repo/repo/repo"
-        if not launcher.exists():
-            launcher = self.source / ".repo/repo/repo"
-        # Repo 2.59 marks object stores precious, then uses repack -a -d to
-        # dissociate. Git 2.34 rejects that combination. Override the setting
-        # only for this process operating in our independently owned checkout;
-        # no reference-tree configuration is edited.
-        env = dict(os.environ)
-        count = int(env.get("GIT_CONFIG_COUNT", "0"))
-        env[f"GIT_CONFIG_KEY_{count}"] = "extensions.preciousObjects"
-        env[f"GIT_CONFIG_VALUE_{count}"] = "false"
-        env["GIT_CONFIG_COUNT"] = str(count + 1)
-        return run([sys.executable, launcher, *args], cwd=self.tree, capture=capture, env=env)
+        return run([sys.executable, launcher, *args], cwd=self.tree, capture=capture)
+
+    def prepare_repo_tool(self):
+        self.require_owned()
+        tool = self.tree / ".repo/repo"
+        revision = git(self.source / ".repo/repo", "rev-parse", "HEAD")
+        if not tool.exists():
+            tool.parent.mkdir(parents=True, exist_ok=True)
+            run(["git", "clone", "--no-hardlinks", self.source / ".repo/repo", tool], capture=True)
+            git(tool, "switch", "--detach", revision)
+        if git(tool, "rev-parse", "HEAD") != revision:
+            raise LabError("Experimental Repo tool revision differs from the reference tool.")
+        path = tool / "project.py"
+        before = 'cmd = ["repack", "-a", "-d"]'
+        after = 'cmd = ["repack", "-a"]  # research: copy borrowed objects without deleting precious packs'
+        text = path.read_text()
+        # Repo 2.59 uses preciousObjects and repack -d together, which Git 2.34
+        # refuses. Copying all reachable objects without -d still dissociates,
+        # while preserving the object protection setting and existing packs.
+        changed = git(tool, "diff", "--name-only").splitlines()
+        if changed and (changed != ["project.py"] or after not in text):
+            raise LabError("Unrecognized changes in experimental Repo tool; preserve them before setup.")
+        if before in text and not changed:
+            if text.count(before) != 1:
+                raise LabError("Ambiguous Repo dissociation implementation.")
+            path.write_text(text.replace(before, after))
+        elif after not in text:
+            raise LabError("Repo dissociation compatibility needs review for this tool version.")
+        write_json(self.state / "repo-compatibility.json", {"revision": revision,
+                   "change": "repack -a instead of repack -a -d during dissociation",
+                   "path": str(path), "sha256": protection.sha256(path)})
 
     def protect(self, compare=False):
         baseline = self.state / "reference-before.json"
@@ -186,15 +205,14 @@ class Lab:
         else:
             self.tree.mkdir()
             write_json(self.tree / ".research-workspace.json", {"owner": MANAGED, "source": str(self.source)})
+        self.prepare_repo_tool()
         phase_file = self.state / "setup.json"
         phase = json.loads(phase_file.read_text()) if phase_file.exists() else {}
         if not phase.get("source_synced"):
             if not (self.tree / ".repo/manifest.xml").exists():
-                repo_rev = git(self.source / ".repo/repo", "rev-parse", "HEAD")
                 self.repo("init", "-u", str(manifest_dir), "-b", "main",
                           "--reference", str(self.source), "--dissociate",
-                          "--repo-url", str(self.source / ".repo/repo"),
-                          "--repo-rev", repo_rev, "--no-repo-verify", "--no-clone-bundle")
+                          "--no-repo-verify", "--no-clone-bundle")
             print("Synchronizing the independent pinned source tree...", flush=True)
             self.repo("sync", "-c", "-j", "6", "--no-clone-bundle", "--no-tags", "--no-manifest-update")
             phase["source_synced"] = True
