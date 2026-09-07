@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "upstream_tag": "android-13.0.0_r43",
+  "manifest_commit": "559c9ae7f7b4d4596127c3472d7772eefef05037",
+  "framework_baseline": "87725c3faa3f5d4e6ed838ad684d2bd49b5d9721",
+  "product": "research_x86_64",
+  "variant": "userdebug",
+  "device": "emulator_x86_64",
+  "sdk": "33",
+  "default_jobs": 8,
+  "research_path": "device/kyler/research",
+  "core_branch": "research/a13/prototype"
+}

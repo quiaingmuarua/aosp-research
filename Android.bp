@@ -1,0 +1,10 @@
+package {
+    default_applicable_licenses: ["aosp_research_license"],
+}
+
+license {
+    name: "aosp_research_license",
+    visibility: [":__subpackages__"],
+    license_kinds: ["SPDX-license-identifier-MIT"],
+    license_text: ["LICENSE"],
+}

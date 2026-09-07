@@ -1,0 +1,8 @@
+cc_binary {
+    name: "research-info",
+    srcs: ["main.cpp"],
+    product_specific: true,
+    sdk_version: "current",
+    stl: "libc++_static",
+    cflags: ["-Wall", "-Wextra", "-Werror"],
+}
