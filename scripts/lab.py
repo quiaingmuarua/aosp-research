@@ -122,23 +122,25 @@ class Lab:
         if git(tool, "rev-parse", "HEAD") != revision:
             raise LabError("Experimental Repo tool revision differs from the reference tool.")
         path = tool / "project.py"
-        before = 'cmd = ["repack", "-a", "-d"]'
-        after = 'cmd = ["repack", "-a"]  # research: copy borrowed objects without deleting precious packs'
-        text = path.read_text()
-        # Repo 2.59 uses preciousObjects and repack -d together, which Git 2.34
-        # refuses. Copying all reachable objects without -d still dissociates,
-        # while preserving the object protection setting and existing packs.
-        changed = git(tool, "diff", "--name-only").splitlines()
-        if changed and (changed != ["project.py"] or after not in text):
-            raise LabError("Unrecognized changes in experimental Repo tool; preserve them before setup.")
-        if before in text and not changed:
-            if text.count(before) != 1:
-                raise LabError("Ambiguous Repo dissociation implementation.")
-            path.write_text(text.replace(before, after))
-        elif after not in text:
-            raise LabError("Repo dissociation compatibility needs review for this tool version.")
+        original = git(tool, "show", "HEAD:project.py") + "\n"
+        start = original.index('                cmd = ["repack", "-a", "-d"]')
+        end = original.index('                platform_utils.remove(alternates_file)', start)
+        replacement = f'''                # research: copy available objects, including partial-clone packs.
+                subprocess.run([sys.executable, {str(ROOT / "scripts/dissociate.py")!r},
+                                os.path.join(self.objdir, "objects")], check=True)
+                if glob.glob(os.path.join(self.objdir, "objects/pack/*.promisor")):
+                    self.EnableRepositoryExtension("partialclone", self.remote.name)
+                    self.config.SetBoolean("remote.%s.promisor" % self.remote.name, True)
+                    self.config.SetString("remote.%s.partialclonefilter" % self.remote.name, "blob:none")
+'''
+        desired = original[:start] + replacement + original[end:]
+        previous = original.replace('cmd = ["repack", "-a", "-d"]',
+                   'cmd = ["repack", "-a"]  # research: copy borrowed objects without deleting precious packs')
+        if path.read_text() not in (original, previous, desired):
+            raise LabError("Unrecognized private Repo changes; preserve them before setup.")
+        path.write_text(desired)
         write_json(self.state / "repo-compatibility.json", {"revision": revision,
-                   "change": "repack -a instead of repack -a -d during dissociation",
+                   "change": "Copy existing objects and promisor packs before removing reference alternates",
                    "path": str(path), "sha256": protection.sha256(path)})
 
     def protect(self, compare=False):
@@ -211,8 +213,11 @@ class Lab:
         if not phase.get("source_synced"):
             if not (self.tree / ".repo/manifest.xml").exists():
                 self.repo("init", "-u", str(manifest_dir), "-b", "main",
-                          "--reference", str(self.source), "--dissociate",
+                          "--dissociate", "--partial-clone", "--clone-filter=blob:none",
                           "--no-repo-verify", "--no-clone-bundle")
+            # The private manifest has no history in the reference AOSP manifest.
+            # Use reference objects only for the source projects that share history.
+            git(self.tree / ".repo/manifests", "config", "repo.reference", str(self.source))
             print("Synchronizing the independent pinned source tree...", flush=True)
             self.repo("sync", "-c", "-j", "6", "--no-clone-bundle", "--no-tags", "--no-manifest-update")
             phase["source_synced"] = True

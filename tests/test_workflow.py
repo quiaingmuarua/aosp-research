@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts import lab
+from scripts.dissociate import copy_objects
 
 
 def init_repo(path):
@@ -94,7 +95,8 @@ class WorkflowTests(unittest.TestCase):
         lab.git(clone, "config", "extensions.preciousObjects", "true")
         result = lab.run(["git", "-C", clone, "repack", "-a", "-d"], capture=True, check=False)
         self.assertNotEqual(result.returncode, 0)
-        lab.run(["git", "-C", clone, "repack", "-a"], capture=True)
+        copy_objects(clone / ".git/objects")
+        copy_objects(clone / ".git/objects")
         (clone / ".git/objects/info/alternates").unlink()
         source.rename(self.base / "source-preserved")
         self.assertEqual(lab.git(clone, "rev-parse", "HEAD"), baseline)
