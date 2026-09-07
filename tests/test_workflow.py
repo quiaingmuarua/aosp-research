@@ -180,6 +180,9 @@ class WorkflowTests(unittest.TestCase):
             with self.assertRaisesRegex(lab.LabError, "absent from the personal repository"):
                 obj.update_product("main")
             self.assertEqual(lab.git(obj.product, "rev-parse", "HEAD"), private)
+            lab.git(personal, "fetch", str(obj.product), "HEAD:refs/heads/import/product-private")
+            obj.update_product("main")
+            self.assertEqual(lab.git(personal, "rev-parse", "refs/heads/import/product-private"), private)
 
     def test_promised_history_backup_keeps_private_feature_offline(self):
         upstream = self.base / "upstream"

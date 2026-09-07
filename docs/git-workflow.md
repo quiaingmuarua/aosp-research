@@ -6,6 +6,16 @@
 
 源码树中的产品检出也是真实 Git 仓库。如果在那里修改，先提交并通过普通 Git fetch/cherry-pick 保存回个人仓库，再更新产品版本。lab 不会覆盖未提交文件或只存在于该检出中的提交。
 
+如果是在实验树内提交产品代码，先将其保存为个人仓库中的明确分支，再整合到 main。这样即使 cherry-pick 生成了新提交号，原提交也不会变成仅靠 FETCH_HEAD 临时保留的对象。
+
+```bash
+# 在个人仓库执行，使用本次功能独有的导入分支名。
+git fetch /path/to/aosp13-research/device/kyler/research HEAD:refs/heads/import/product-my-feature
+git merge --ff-only import/product-my-feature
+# 如果 main 已分叉，可改为 cherry-pick 所需提交，并保留上述 import 分支。
+./lab setup aosp13 --revision main
+```
+
 ## 核心实验
 
 以下命令在**实验目录的 frameworks/base 子仓库**执行。基线来自 targets/aosp13.json。
