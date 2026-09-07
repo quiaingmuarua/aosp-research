@@ -395,7 +395,9 @@ class Lab:
                    "-no-snapshot", "-no-boot-anim", "-memory", "4096", "-cores", "4", "-port", str(port),
                    "-data", str(runtime / "userdata.img"), "-cache", str(runtime / "cache.img"),
                    "-initdata", str(self.product_out / "userdata.img")]
-        version = run([emulator, "-version"], capture=True).stdout.splitlines()[0]
+        version_output = run([emulator, "-version"], capture=True)
+        version = next(line for line in (version_output.stdout + version_output.stderr).splitlines()
+                       if "Android emulator version" in line)
         with (runtime / "emulator.log").open("w") as f:
             process = subprocess.Popen(command, cwd=self.tree, env=env, stdout=f, stderr=subprocess.STDOUT,
                                        start_new_session=True)
