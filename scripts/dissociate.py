@@ -35,7 +35,7 @@ def copy_objects(destination):
                             continue
                         target = destination / directory.name / file.name
                         if target.exists():
-                            if target.stat().st_size != file.stat().st_size:
+                            if not file.name.endswith((".promisor", ".bitmap", ".rev")) and target.stat().st_size != file.stat().st_size:
                                 raise RuntimeError(f"Object collision: {target}")
                             continue
                         target.parent.mkdir(exist_ok=True)
