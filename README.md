@@ -21,7 +21,7 @@
 
 构建默认使用 8 个并行任务，输出在实验源码自己的 `out`。模块迭代可以使用 `./lab build research-info`，但模块构建不会替代完整产品构建记录。
 
-`setup` 首次创建独立 Repo checkout，利用参考源码对象并 dissociate。此后只更新个人产品项目。`--revision` 可以指定本仓库提交、分支或标签，最终以提交号固定。
+`setup` 首次创建独立 Repo checkout，利用参考源码对象并 dissociate。原环境是部分克隆；为兼容本机 Git 2.34 与 Repo 2.59，实验目录的 Repo 在解除引用前复制已有对象和 promisor 标记。原 Repo 不修改，也不补下载整段历史的缺失 blob。复制完成后，实验对象库没有指向原目录的 alternates。此后只更新个人产品项目。`--revision` 可以指定本仓库提交、分支或标签，最终以提交号固定。
 
 ## 两类修改
 
@@ -42,7 +42,7 @@
 ./lab protect --compare
 ```
 
-快照在 state 目录记录 Git 提交与锁定 manifest，并将产品和 framework 历史保存到本地裸仓库。它不是整块磁盘的备份，也不会包含未提交代码。需要异机恢复时，应一并搬运这些裸仓库并更新清单中的本地来源。
+快照在 state 目录记录 Git 提交与锁定 manifest，并将产品和 framework 历史保存到本地裸仓库。`lab snapshot <name> --images` 还会复制与源码匹配的完整产品镜像并保存 SHA-256。它不是整块磁盘的备份，也不会包含未提交代码。需要异机恢复时，应一并搬运这些裸仓库并更新清单中的本地来源。
 
 ## 测试
 

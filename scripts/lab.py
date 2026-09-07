@@ -188,6 +188,13 @@ class Lab:
         mdir = self.state / "manifests"
         if mdir.exists():
             require_clean(mdir)
+            if ET.tostring(ET.parse(mdir / "default.xml").getroot()) != ET.tostring(manifest):
+                # Normalize formatting before comparing the pinned content.
+                existing = ET.parse(mdir / "default.xml").getroot()
+                ET.indent(existing)
+                ET.indent(manifest)
+                if ET.tostring(existing) != ET.tostring(manifest):
+                    raise LabError("Existing pinned manifest differs from the recorded reference.")
             return mdir
         mdir.mkdir()
         ET.indent(manifest)
@@ -211,7 +218,15 @@ class Lab:
         self.prepare_repo_tool()
         phase_file = self.state / "setup.json"
         phase = json.loads(phase_file.read_text()) if phase_file.exists() else {}
+        if phase.get("source_synced") and self.product.exists():
+            self.statuses(clean=True)
         if not phase.get("source_synced"):
+            # Interrupted initial synchronization can already contain checkouts.
+            manifest = ET.parse(manifest_dir / "default.xml").getroot()
+            for project in manifest.findall("project"):
+                checkout = self.tree / project.get("path", project.get("name"))
+                if (checkout / ".git").exists() and git(checkout, "rev-parse", "--verify", "HEAD", check=False):
+                    require_clean(checkout)
             if not (self.tree / ".repo/manifest.xml").exists():
                 self.repo("init", "-u", str(manifest_dir), "-b", "main",
                           "--dissociate", "--partial-clone", "--clone-filter=blob:none",
@@ -263,6 +278,11 @@ class Lab:
             dirty = [r["path"] for r in records if r["status"]]
             if dirty:
                 raise LabError(f"Unsaved source changes: {dirty}")
+            for record in records:
+                gitdir = self.tree / record["path"] / ".git"
+                for marker in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply"):
+                    if (gitdir / marker).exists():
+                        raise LabError(f"Git operation in progress: {record['path']} / {marker}")
             require_clean(ROOT)
             require_clean(self.core)
             require_clean(self.product)
@@ -462,7 +482,7 @@ class Lab:
         git(bare, "config", "uploadpack.allowFilter", "true")
         git(bare, "update-ref", baseline_ref, TARGET["framework_baseline"])
 
-    def snapshot(self, name):
+    def snapshot(self, name, images=False):
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
             raise LabError("Invalid snapshot name.")
         self.statuses(clean=True)
@@ -504,7 +524,22 @@ class Lab:
             verification_file = Path(runtime["directory"]) / "verification.json"
             if verification_file.exists():
                 verification = json.loads(verification_file.read_text())
-        write_json(directory / "snapshot.json", {"time": now(), "name": name, "commits": commits,
+        image_records = {}
+        if images:
+            build_file = self.state / "last-full-build.json"
+            build = json.loads(build_file.read_text()) if build_file.exists() else {}
+            if build.get("core_commit") != commits["frameworks-base"]["commit"] or build.get("product_commit") != commits["product"]["commit"]:
+                raise LabError("Images do not match the selected source commits.")
+            image_dir = directory / "images"
+            image_dir.mkdir()
+            paths = list(self.product_out.glob("*.img")) + list(self.product_out.glob("*.ini"))
+            paths += [self.product_out / "kernel-ranchu"]
+            for source in paths:
+                if source.is_file():
+                    target = image_dir / source.name
+                    run(["cp", "--reflink=auto", "--sparse=always", str(source), str(target)])
+                    image_records[source.name] = {"size": target.stat().st_size, "sha256": protection.sha256(target)}
+        write_json(directory / "snapshot.json", {"images": image_records, "time": now(), "name": name, "commits": commits,
                    "target": TARGET, "tree": str(self.tree), "verification": verification,
                    "history": "Core commit history and locally available blobs saved; absent upstream historical blobs remain promised by googlesource."})
         print(f"Saved Git-backed snapshot: {directory}")
@@ -532,6 +567,7 @@ def main():
     p.add_argument("--timeout", type=int, default=300)
     p = sub.add_parser("snapshot")
     p.add_argument("name")
+    p.add_argument("--images", action="store_true", help="Also preserve the matching complete build images")
     p = sub.add_parser("protect")
     p.add_argument("--compare", action="store_true")
     args = parser.parse_args()
@@ -562,7 +598,7 @@ def main():
             elif args.command == "verify":
                 lab.verify(args.expect, args.timeout)
             elif args.command == "snapshot":
-                lab.snapshot(args.name)
+                lab.snapshot(args.name, args.images)
             elif args.command == "protect":
                 lab.protect(args.compare)
     except (LabError, subprocess.TimeoutExpired, json.JSONDecodeError) as e:

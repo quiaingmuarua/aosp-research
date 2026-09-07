@@ -19,7 +19,7 @@ git add services/core/java/com/android/server/am/ActivityManagerShellCommand.jav
 git commit -m 'Add a read-only research status shell command'
 ```
 
-回到个人仓库运行完整构建、设备验证，然后 `lab snapshot experiment-1`。快照会将核心提交推送到 state/git/frameworks-base.git 的 snapshots/experiment-1 分支。
+回到个人仓库运行完整构建、设备验证，然后 `lab snapshot experiment-1`。快照会将核心提交推送到 state/git/frameworks-base.git 的 snapshots/experiment-1 分支；在实验分支上也同步保存 research/a13/prototype。
 
 返回基线前，停止 lab 模拟器，确认工作目录干净且已保存提交。仍在上述核心子仓库执行：
 
@@ -37,3 +37,13 @@ git switch --detach 87725c3faa3f5d4e6ed838ad684d2bd49b5d9721
 每个快照有 snapshot.json 与 manifest.xml。产品和 framework 的 Git 历史保存在 state/git，快照分支保留对应提交。可以通过 git clone --branch snapshots/<name> 从这些裸仓库恢复研究代码。
 
 manifest 锁定其余上游项目的提交，并将两个私有项目指向实际 Git 保存位置。异机使用时更新这些本地远端地址；上游对象仍需从可用的上游或参考缓存取得。
+
+## 部分克隆的边界
+
+本机原 AOSP 是 blob:none 部分克隆。备份保存提交历史、当前版本已有文件和所有私有功能提交；上游历史中从未下载过的文件内容仍由官方远端提供。它不依赖原 aosp13 目录，但不等于全部 Android 历史文件的离线镜像。恢复核心仓库可以使用：
+
+```bash
+git clone --filter=blob:none --branch research/a13/prototype file:///path/to/state/git/frameworks-base.git restored-frameworks-base
+```
+
+在断开原开发检出后恢复私有提交的测试包含在维护脚本测试中；实际原型的恢复证据另见验证报告。
