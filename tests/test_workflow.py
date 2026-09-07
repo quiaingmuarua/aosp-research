@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from scripts import lab
 from scripts.dissociate import copy_objects
@@ -93,6 +94,26 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual((restored / "file").read_text(), "research change\n")
         lab.git(repo, "switch", "research/a13/prototype")
         self.assertEqual(lab.git(repo, "rev-parse", "HEAD"), feature)
+
+    def test_failed_and_module_builds_cannot_reuse_a_previous_full_build(self):
+        obj = object.__new__(lab.Lab)
+        obj.state = self.base / "state"
+        obj.state.mkdir()
+        obj.out = self.base / "out"
+        obj.tree, obj.core, obj.product = self.base, self.base / "core", self.base / "product"
+        pointer = obj.state / "last-full-build.json"
+        lab.write_json(pointer, {"core_commit": "old-success"})
+        with patch.object(obj, "runtime_alive", return_value=False), patch.object(obj, "statuses", return_value=[]), patch.object(lab, "git", return_value="current"):
+            with patch.object(lab.subprocess, "run", return_value=SimpleNamespace(returncode=1)):
+                with self.assertRaises(lab.LabError):
+                    obj.build(8, [])
+            self.assertEqual(json.loads(pointer.read_text())["status"], "invalid")
+            with patch.object(lab.subprocess, "run", return_value=SimpleNamespace(returncode=0)):
+                obj.build(8, ["research-info"])
+                self.assertEqual(json.loads(pointer.read_text())["status"], "invalid")
+                obj.build(8, [])
+                self.assertEqual(json.loads(pointer.read_text())["core_commit"], "current")
+        self.assertEqual(len(list((obj.state / "builds").glob("*.json"))), 3)
 
     def test_dead_process_is_not_owned_emulator(self):
         obj = object.__new__(lab.Lab)
