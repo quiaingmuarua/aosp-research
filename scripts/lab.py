@@ -88,7 +88,20 @@ class Lab:
         self.core = self.tree / "frameworks/base"
         self.out = self.tree / "out"
         self.product_out = self.out / "target/product" / TARGET["device"]
-        self.state.mkdir(parents=True, exist_ok=True)
+        self.initialize_state()
+
+    def initialize_state(self):
+        identity = {"owner": MANAGED, "source": str(self.source),
+                    "tree": str(self.tree), "personal": str(ROOT)}
+        marker = self.state / "identity.json"
+        if marker.exists():
+            if json.loads(marker.read_text()) != identity:
+                raise LabError("State directory belongs to a different workspace.")
+        else:
+            if self.state.exists() and any(self.state.iterdir()):
+                raise LabError("Existing nonempty state directory has no research identity; refusing to adopt it.")
+            self.state.mkdir(parents=True, exist_ok=True)
+            write_json(marker, identity)
 
     def require_owned(self):
         p = self.tree / ".research-workspace.json"

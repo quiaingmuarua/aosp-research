@@ -28,6 +28,22 @@ class WorkflowTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_state_identity_rejects_unrelated_files_and_other_workspaces(self):
+        obj = object.__new__(lab.Lab)
+        obj.source, obj.tree, obj.state = [self.base / x for x in ("source", "tree", "state")]
+        obj.state.mkdir()
+        keep = obj.state / "keep"
+        keep.write_text("unrelated data")
+        with self.assertRaises(lab.LabError):
+            obj.initialize_state()
+        self.assertEqual(keep.read_text(), "unrelated data")
+        obj.state = self.base / "own-state"
+        obj.initialize_state()
+        obj.initialize_state()
+        obj.tree = self.base / "other-tree"
+        with self.assertRaises(lab.LabError):
+            obj.initialize_state()
+
     def test_nested_source_and_workspace_rejected(self):
         for tree in (self.base / "source", self.base / "source/work", self.base):
             with self.assertRaises(lab.LabError):
