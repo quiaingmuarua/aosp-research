@@ -18,7 +18,7 @@ git merge --ff-only import/product-my-feature
 
 ## 核心实验
 
-以下命令在**实验目录的 frameworks/base 子仓库**执行。基线来自 targets/aosp13.json。
+以下命令在**实验目录的 frameworks/base 子仓库**执行。基线来自 targets/aosp13.json。发布原型已经建立下述分支；现有环境直接使用 `git switch research/a13/prototype`，不再重复 `switch -c`。代码块用于说明新建实验时的过程。
 
 ```bash
 git status --short

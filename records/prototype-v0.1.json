@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "release_tag": "prototype-v0.1",
+  "four_phase_product_commit": "dd621c5647264975008f6504caf8743e5147731e",
+  "framework_baseline": "87725c3faa3f5d4e6ed838ad684d2bd49b5d9721",
+  "framework_feature": "28887f3d5d74e8cfaf4ee5e0015470b09fa941d2",
+  "phases": [
+    {
+      "name": "baseline-1",
+      "label": "产品基线",
+      "verification": {
+        "time": "2026-09-07T16:05:07.937825+00:00",
+        "expect": "baseline",
+        "serial": "emulator-5580",
+        "info": {
+          "tool_version": "0.1.0",
+          "android_release": "13",
+          "sdk": "33",
+          "build_id": "TQ2A.230505.002",
+          "fingerprint": "AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys",
+          "abi": "x86_64",
+          "build_flavor": "research_x86_64-userdebug"
+        },
+        "tool_text": "tool_version=0.1.0\nandroid_release=13\nsdk=33\nbuild_id=TQ2A.230505.002\nfingerprint=AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys\nabi=x86_64\nbuild_flavor=research_x86_64-userdebug\n",
+        "core_output": "Unknown command: research-status\n",
+        "core_returncode": 255,
+        "help_returncode": 255,
+        "checks": {
+          "help_response": true,
+          "text_matches_json": true,
+          "invalid_args": true,
+          "debuggable_build": true,
+          "android_release": true,
+          "build_id": true,
+          "android_sdk": true,
+          "product_flavor": true,
+          "tool_version": true,
+          "abi": true,
+          "fingerprint": true,
+          "core_presence": true,
+          "help_presence": true,
+          "unknown_command": true
+        },
+        "passed": true,
+        "build": {
+          "time": "2026-09-07T16:01:39.634592+00:00",
+          "jobs": 8,
+          "modules": [],
+          "product_commit": "dd621c5647264975008f6504caf8743e5147731e",
+          "core_commit": "87725c3faa3f5d4e6ed838ad684d2bd49b5d9721",
+          "product": "research_x86_64",
+          "variant": "userdebug",
+          "out": "$TREE/out",
+          "log": "$STATE/builds/20260908-000139-634554.log",
+          "returncode": 0,
+          "finished": "2026-09-07T16:01:59.482037+00:00"
+        },
+        "emulator_version": "Android emulator version 31.3.9.0 (build_id 8748233) (CL:N/A)"
+      },
+      "sha256sum": "b02b2f69f9d3a3b28e7bb0599ef448fe02526b3126e3d0570ca58307d94547e4  /product/bin/research-info\n331c6d429a5f2c5878562dcf8f26fe295f93868fe1ecfaf529699b5b80e80dc8  /system/framework/services.jar\n",
+      "crash_log_bytes": 0
+    },
+    {
+      "name": "experiment-1",
+      "label": "启用核心实验",
+      "verification": {
+        "time": "2026-09-07T16:22:53.212588+00:00",
+        "expect": "experiment",
+        "serial": "emulator-5580",
+        "info": {
+          "tool_version": "0.1.0",
+          "android_release": "13",
+          "sdk": "33",
+          "build_id": "TQ2A.230505.002",
+          "fingerprint": "AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys",
+          "abi": "x86_64",
+          "build_flavor": "research_x86_64-userdebug"
+        },
+        "tool_text": "tool_version=0.1.0\nandroid_release=13\nsdk=33\nbuild_id=TQ2A.230505.002\nfingerprint=AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys\nabi=x86_64\nbuild_flavor=research_x86_64-userdebug\n",
+        "core_output": "research.framework=enabled\nsdk=33\n",
+        "core_returncode": 0,
+        "help_returncode": 255,
+        "checks": {
+          "help_response": true,
+          "text_matches_json": true,
+          "invalid_args": true,
+          "debuggable_build": true,
+          "android_release": true,
+          "build_id": true,
+          "android_sdk": true,
+          "product_flavor": true,
+          "tool_version": true,
+          "abi": true,
+          "fingerprint": true,
+          "core_presence": true,
+          "help_presence": true,
+          "core_sdk": true
+        },
+        "passed": true,
+        "build": {
+          "time": "2026-09-07T16:20:03.251703+00:00",
+          "jobs": 8,
+          "modules": [],
+          "product_commit": "dd621c5647264975008f6504caf8743e5147731e",
+          "core_commit": "28887f3d5d74e8cfaf4ee5e0015470b09fa941d2",
+          "product": "research_x86_64",
+          "variant": "userdebug",
+          "out": "$TREE/out",
+          "log": "$STATE/builds/20260908-002003-251522.log",
+          "returncode": 0,
+          "finished": "2026-09-07T16:21:24.513788+00:00"
+        },
+        "emulator_version": "Android emulator version 31.3.9.0 (build_id 8748233) (CL:N/A)"
+      },
+      "sha256sum": "b02b2f69f9d3a3b28e7bb0599ef448fe02526b3126e3d0570ca58307d94547e4  /product/bin/research-info\n973101334094960ec6c2349af2b01d6bdafaddb91a2f14b98559bbb4b7c110b1  /system/framework/services.jar\n",
+      "crash_log_bytes": 0
+    },
+    {
+      "name": "restored-baseline-1",
+      "label": "恢复核心基线",
+      "verification": {
+        "time": "2026-09-07T16:29:46.273520+00:00",
+        "expect": "baseline",
+        "serial": "emulator-5580",
+        "info": {
+          "tool_version": "0.1.0",
+          "android_release": "13",
+          "sdk": "33",
+          "build_id": "TQ2A.230505.002",
+          "fingerprint": "AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys",
+          "abi": "x86_64",
+          "build_flavor": "research_x86_64-userdebug"
+        },
+        "tool_text": "tool_version=0.1.0\nandroid_release=13\nsdk=33\nbuild_id=TQ2A.230505.002\nfingerprint=AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys\nabi=x86_64\nbuild_flavor=research_x86_64-userdebug\n",
+        "core_output": "Unknown command: research-status\n",
+        "core_returncode": 255,
+        "help_returncode": 255,
+        "checks": {
+          "help_response": true,
+          "text_matches_json": true,
+          "invalid_args": true,
+          "debuggable_build": true,
+          "android_release": true,
+          "build_id": true,
+          "android_sdk": true,
+          "product_flavor": true,
+          "tool_version": true,
+          "abi": true,
+          "fingerprint": true,
+          "core_presence": true,
+          "help_presence": true,
+          "unknown_command": true
+        },
+        "passed": true,
+        "build": {
+          "time": "2026-09-07T16:26:55.699200+00:00",
+          "jobs": 8,
+          "modules": [],
+          "product_commit": "dd621c5647264975008f6504caf8743e5147731e",
+          "core_commit": "87725c3faa3f5d4e6ed838ad684d2bd49b5d9721",
+          "product": "research_x86_64",
+          "variant": "userdebug",
+          "out": "$TREE/out",
+          "log": "$STATE/builds/20260908-002655-698958.log",
+          "returncode": 0,
+          "finished": "2026-09-07T16:28:12.299121+00:00"
+        },
+        "emulator_version": "Android emulator version 31.3.9.0 (build_id 8748233) (CL:N/A)"
+      },
+      "sha256sum": "b02b2f69f9d3a3b28e7bb0599ef448fe02526b3126e3d0570ca58307d94547e4  /product/bin/research-info\n331c6d429a5f2c5878562dcf8f26fe295f93868fe1ecfaf529699b5b80e80dc8  /system/framework/services.jar\n",
+      "crash_log_bytes": 0
+    },
+    {
+      "name": "restored-experiment-1",
+      "label": "重新启用实验",
+      "verification": {
+        "time": "2026-09-07T16:42:34.677749+00:00",
+        "expect": "experiment",
+        "serial": "emulator-5580",
+        "info": {
+          "tool_version": "0.1.0",
+          "android_release": "13",
+          "sdk": "33",
+          "build_id": "TQ2A.230505.002",
+          "fingerprint": "AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys",
+          "abi": "x86_64",
+          "build_flavor": "research_x86_64-userdebug"
+        },
+        "tool_text": "tool_version=0.1.0\nandroid_release=13\nsdk=33\nbuild_id=TQ2A.230505.002\nfingerprint=AOSPResearch/research_x86_64/emulator_x86_64:13/TQ2A.230505.002/eng.kyler.20260907.225338:userdebug/test-keys\nabi=x86_64\nbuild_flavor=research_x86_64-userdebug\n",
+        "core_output": "research.framework=enabled\nsdk=33\n",
+        "core_returncode": 0,
+        "help_returncode": 255,
+        "checks": {
+          "help_response": true,
+          "text_matches_json": true,
+          "invalid_args": true,
+          "debuggable_build": true,
+          "android_release": true,
+          "build_id": true,
+          "android_sdk": true,
+          "product_flavor": true,
+          "tool_version": true,
+          "abi": true,
+          "fingerprint": true,
+          "core_presence": true,
+          "help_presence": true,
+          "core_sdk": true
+        },
+        "passed": true,
+        "build": {
+          "time": "2026-09-07T16:32:15.396166+00:00",
+          "jobs": 8,
+          "modules": [],
+          "product_commit": "dd621c5647264975008f6504caf8743e5147731e",
+          "core_commit": "28887f3d5d74e8cfaf4ee5e0015470b09fa941d2",
+          "product": "research_x86_64",
+          "variant": "userdebug",
+          "out": "$TREE/out",
+          "log": "$STATE/builds/20260908-003215-395901.log",
+          "returncode": 0,
+          "finished": "2026-09-07T16:33:33.448349+00:00"
+        },
+        "emulator_version": "Android emulator version 31.3.9.0 (build_id 8748233) (CL:N/A)"
+      },
+      "sha256sum": "b02b2f69f9d3a3b28e7bb0599ef448fe02526b3126e3d0570ca58307d94547e4  /product/bin/research-info\n973101334094960ec6c2349af2b01d6bdafaddb91a2f14b98559bbb4b7c110b1  /system/framework/services.jar\n",
+      "crash_log_bytes": 0
+    }
+  ],
+  "original_comparison": {
+    "time": "2026-09-07T16:43:57.251003+00:00",
+    "equal": true
+  },
+  "available_project_commits": 1136,
+  "private_reproduction": {
+    "network_protocols": "Only file transport allowed; HTTP, HTTPS and SSH disabled",
+    "snapshots": "core-source-1",
+    "checks": {
+      "product": {
+        "commit": "dd621c5647264975008f6504caf8743e5147731e",
+        "restored": true,
+        "directory": "$STATE/reproduction/core-source-1/product"
+      },
+      "frameworks-base": {
+        "commit": "28887f3d5d74e8cfaf4ee5e0015470b09fa941d2",
+        "restored": true,
+        "directory": "$STATE/reproduction/core-source-1/frameworks-base",
+        "baseline_and_feature_checkout": true
+      }
+    }
+  }
+}

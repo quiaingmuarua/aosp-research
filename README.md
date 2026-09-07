@@ -2,7 +2,25 @@
 
 一个个人 Git 仓库维护 product、独立工具和维护脚本。需要修改 framework 时，在实验源码的对应 Git 子仓库保留功能分支。
 
-当前实现目标是 AOSP 13 `android-13.0.0_r43`。完整构建、启动和恢复结果记录在 `docs/verification.md`；在验证完成前，请勿将代码存在视为原型已通过验收。AOSP 14、15 尚未验证。
+AOSP 13 `android-13.0.0_r43` 已通过完整产品构建、四轮启动与核心恢复验证，详见 [实测记录](docs/verification.md)。AOSP 14、15 尚未验证。
+
+## 已配置机器的日常入口
+
+在个人仓库目录中执行：
+
+```bash
+git log -5 --oneline
+./lab status
+# 发布交付时 frameworks/base 位于 research/a13/prototype 分支。
+# 如模拟器正在运行，可直接验证；需要构建前先停止。
+./lab verify --expect experiment
+./lab stop
+./lab build
+./lab run --name my-next-run --window
+./lab verify --expect experiment
+```
+
+运行名不能重复，日志和模拟器数据会保留。主仓库维护产品与脚本；framework 的功能提交在实验源码的子仓库，因此两处分别查看 Git 记录。当前本地版本管理不依赖 GitHub；外部远端可在以后自行添加。
 
 ## 第一次使用
 
